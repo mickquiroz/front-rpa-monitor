@@ -10,8 +10,26 @@ interface LogContextType {
     stats: DashboardStats;
 }
 
+interface CSVRow {
+    'Time (absolute)': string;
+    'Level': string;
+    'Robot name': string;
+    'Process': string;
+    'Hostname': string;
+    'Host Identity': string;
+    'Message': string;
+    'Software': string;
+    'Client': string;
+}
+
 const LogContext = createContext<LogContextType | undefined>(undefined);
 
+const parseDate = (dateStr: string) => {
+    // Format: 2025-10-13 13:31:05
+    return new Date(dateStr);
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLogs = () => {
     const context = useContext(LogContext);
     if (!context) {
@@ -19,12 +37,6 @@ export const useLogs = () => {
     }
     return context;
 };
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const parseDate = (dateStr: string) => {
-    // Format: 2025-10-13 13:31:05
-    return new Date(dateStr);
-}
 
 export const LogProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [logs, setLogs] = useState<RPALog[]>([]);
@@ -44,16 +56,15 @@ export const LogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
                 const csvText = await response.text();
 
-                Papa.parse(csvText, {
+                Papa.parse<CSVRow>(csvText, {
                     header: true,
                     skipEmptyLines: true,
                     worker: false, // Disable worker to avoid potential bundler issues for now
                     complete: (results) => {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const parsedLogs: RPALog[] = results.data.map((row: any, index: number) => ({
+                        const parsedLogs: RPALog[] = results.data.map((row: CSVRow, index: number) => ({
                             id: `log-${index}`,
                             time: parseDate(row['Time (absolute)']),
-                            level: row['Level'],
+                            level: row['Level'] as RPALog['level'],
                             robotName: row['Robot name'],
                             process: row['Process'],
                             hostname: row['Hostname'],
@@ -61,7 +72,7 @@ export const LogProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                             message: row['Message'],
                             software: row['Software'],
                             client: row['Client']
-                        })).filter((l: RPALog) => l.client);
+                        })).filter((l) => l.client);
 
                         if (parsedLogs.length === 0) {
                             console.warn("Parsed logs are empty", results.errors);

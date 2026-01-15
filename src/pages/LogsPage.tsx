@@ -2,8 +2,19 @@ import { useState, useMemo } from 'react';
 import { useLogs } from '../context/LogContext';
 import { useToast } from '../context/ToastContext';
 import { Filter, ChevronLeft, ChevronRight, Download } from 'lucide-react';
-import { cn } from '../lib/utils';
 import Papa from 'papaparse';
+import {
+    Card,
+    Badge,
+    Button,
+    Input,
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableHead,
+    TableCell,
+} from '../components/ui';
 
 const PAGE_SIZE = 50;
 
@@ -49,39 +60,38 @@ export function LogsPage({ initialFilters = {} }: LogsPageProps) {
         link.href = URL.createObjectURL(blob);
         link.download = 'rpa_logs_export.csv';
         link.click();
-        showToast('Export started successfully', 'success');
+        showToast('Data exported successfully', 'success');
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-space-3">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 className="text-2xl font-bold text-slate-900">System Logs</h2>
-                <button
+                <Button
                     onClick={handleExport}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                    variant="secondary"
+                    iconLeft={Download}
                 >
-                    <Download size={16} />
-                    Export Filtered
-                </button>
+                    Export Data
+                </Button>
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 items-center">
-                <div className="relative flex-1 w-full">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        placeholder="Search messages, robots..."
-                        value={filterText}
-                        onChange={(e) => { setFilterText(e.target.value); setCurrentPage(1); }}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                    />
-                </div>
+            <Card className="flex flex-col sm:flex-row gap-4 items-center">
+                <Input
+                    type="text"
+                    placeholder="Search messages, robots..."
+                    value={filterText}
+                    onChange={(e) => { setFilterText(e.target.value); setCurrentPage(1); }}
+                    iconLeft={Filter}
+                    fullWidth
+                    className="bg-slate-50"
+                />
 
                 <select
                     value={levelFilter}
                     onChange={(e) => { setLevelFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full sm:w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full sm:w-40 px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-fast"
                 >
                     <option value="All">All Levels</option>
                     <option value="Info">Info</option>
@@ -94,81 +104,86 @@ export function LogsPage({ initialFilters = {} }: LogsPageProps) {
                 <select
                     value={clientFilter}
                     onChange={(e) => { setClientFilter(e.target.value); setCurrentPage(1); }}
-                    className="w-full sm:w-48 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className="w-full sm:w-48 px-3 py-2 bg-slate-50 border border-slate-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-fast"
                 >
                     <option value="All">All Clients</option>
                     {clients.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-            </div>
+            </Card>
 
             {/* Table */}
-            <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+            <Card padding="none" className="overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50 border-b border-slate-200">
-                            <tr>
-                                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Time</th>
-                                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Level</th>
-                                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Client</th>
-                                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Robot</th>
-                                <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Message</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
+                    <Table>
+                        <TableHeader>
+                            <TableRow hoverable={false}>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Level</TableHead>
+                                <TableHead>Client</TableHead>
+                                <TableHead>Robot</TableHead>
+                                <TableHead>Message</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {currentData.map(log => (
-                                <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="px-6 py-3 text-sm text-slate-500 whitespace-nowrap font-mono text-xs">{log.time.toLocaleString()}</td>
-                                    <td className="px-6 py-3 text-sm">
-                                        <span className={cn(
-                                            "px-2 py-1 rounded-full text-xs font-medium",
-                                            log.level === 'Info' && "bg-blue-100 text-blue-700",
-                                            log.level === 'Trace' && "bg-slate-100 text-slate-700",
-                                            log.level === 'Warning' && "bg-orange-100 text-orange-700",
-                                            (log.level === 'Error' || log.level === 'Fatal') && "bg-red-100 text-red-700"
-                                        )}>
+                                <TableRow key={log.id}>
+                                    <TableCell className="text-slate-500 whitespace-nowrap font-mono text-xs">{log.time.toLocaleString()}</TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant={
+                                                log.level === 'Info' ? 'info' :
+                                                log.level === 'Trace' ? 'neutral' :
+                                                log.level === 'Warning' ? 'warning' :
+                                                'error'
+                                            }
+                                        >
                                             {log.level}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-3 text-sm font-medium text-slate-700">{log.client}</td>
-                                    <td className="px-6 py-3 text-sm text-slate-500">{log.robotName}</td>
-                                    <td className="px-6 py-3 text-sm text-slate-600 max-w-lg truncate" title={log.message}>{log.message}</td>
-                                </tr>
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-medium text-slate-700">{log.client}</TableCell>
+                                    <TableCell className="text-slate-500">{log.robotName}</TableCell>
+                                    <TableCell className="text-slate-600 max-w-lg truncate" title={log.message}>{log.message}</TableCell>
+                                </TableRow>
                             ))}
                             {currentData.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                                        No logs found matching filters.
-                                    </td>
-                                </tr>
+                                <TableRow hoverable={false}>
+                                    <TableCell colSpan={5} className="py-12 text-center text-slate-400">
+                                        No logs match the current filters
+                                    </TableCell>
+                                </TableRow>
                             )}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div className="bg-white border-t border-slate-200 py-4 px-space-3 flex items-center justify-between">
                     <div className="text-sm text-slate-500 hidden sm:block">
                         Showing <span className="font-medium">{(currentPage - 1) * PAGE_SIZE + 1}</span> to <span className="font-medium">{Math.min(currentPage * PAGE_SIZE, filteredLogs.length)}</span> of <span className="font-medium">{filteredLogs.length}</span> results
                     </div>
                     <div className="flex items-center gap-2">
-                        <button
+                        <Button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            variant="secondary"
+                            size="sm"
+                            iconLeft={ChevronLeft}
+                            className="px-2"
                         >
-                            <ChevronLeft size={16} />
-                        </button>
+                        </Button>
                         <span className="text-sm font-medium text-slate-700">Page {currentPage} of {totalPages}</span>
-                        <button
+                        <Button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            variant="secondary"
+                            size="sm"
+                            iconLeft={ChevronRight}
+                            className="px-2"
                         >
-                            <ChevronRight size={16} />
-                        </button>
+                        </Button>
                     </div>
                 </div>
-            </div>
+            </Card>
         </div>
     );
 }

@@ -20,3 +20,8 @@ export interface DashboardStats {
     activeProcesses: number;
     lastUpdate: Date | null;
 }
+
+export interface NavigationParams {
+    client?: string;
+    [key: string]: string | undefined;
+}
